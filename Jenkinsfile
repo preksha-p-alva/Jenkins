@@ -3,8 +3,9 @@ pipeline {
   stages {
     stage('Triger CloudBuild..') {
       steps {
-        googleCloudBuild credentialsId: '<ENTER-YOUR-CREDS-ID>' , request: inline('''steps:
-        # Creating a golden image
+        googleCloudBuild credentilsId: '4bd5d4b7-3d09-43b5-8089-8c306f1d9fe2' , 
+        request: inline(' ' ' steps:
+        // Creating a golden image
         - name: gcr.io/cloud-builders/gcloud
           id: create-golden-image
           args:
@@ -12,12 +13,12 @@ pipeline {
           - compute
           - images
           - create                                                                                 
-          - <ENTER-NEW-IMAGE-NAME>
-          - --source-disk=<ENTER-YOUR-VM-SOURCEDISK-NAME>
-          - --source-disk-zone=<ENTER-YOUR-SOURCE-DISK-ZONE>
-          - --project=<ENTER-YOUR-PROJECT-ID>
+          - demo-image
+          - --source-disk=demo-vm-instance
+          - --source-disk-zone=asia-south1-c
+          - --project=presales-infra-mod
           - --force
-        #Creating a new instance template
+        // Creating a new instance template
         - name: gcr.io/cloud-builders/gcloud
           id: create-instance-template
           args:
@@ -25,21 +26,22 @@ pipeline {
           - compute
           - instance-templates
           - create
-          - <ENTER-YOUR-NEW-TEMPLATE-NAME>
-          - --subnet=projects/<ENTER-YOUR-PROJECT-ID>/regions/<ENTER-YOUR-REGION-NAME>/subnetworks/<ENTER-YOUR-SUBNET-NAME>
+          - nginx-template
+          - --subnet=projects/presales-infra-mod/regions/asia-south1/subnetworks/subnet-1
           - --no-address
-          - --image-project=<ENTER-YOUR-PROJECT-ID>
+          - --no-address
+          - --image-project=presales-infra-mod
           - --maintenance-policy=MIGRATE
-          - --service-account=<ENTER-YOUR-SERVICE-ACCOUNT-NAME>
+          - --service-account=jenkins-cicd@presales-infra-mod.iam.gserviceaccount.com
           - --scopes=https://www.googleapis.com/auth/cloud-platform
-          - --region=<ENTER-REGION-NAME>
+          - --region=asia-south1
           - --tags=mig-rolling-update
-          - --image=<ENTER-NEW-IMAGE-NAME>
-          - --boot-disk-size=<ENTER-BOOT-DISK-SIZE>
-          - --boot-disk-type=<ENTER-DISK-SIZE>
-          - --boot-disk-device-name=<ENTER-BOOT-DISK-NAME>
-          - --project=<ENTER-YOUR-PROJECT-ID>
-        #Make sure that our MIG is stable before update
+          - --image=demo-image
+          - --boot-disk-size=10
+          - --boot-disk-type=New balanced persistent disk
+          - --boot-disk-device-name=demo-vm-instance
+          - --project=presales-infra-mod
+        // Make sure that our MIG is stable before update
         - name: gcr.io/cloud-builders/gcloud
           id: wait-until-stable
           args:
@@ -48,11 +50,11 @@ pipeline {
           - instance-groups
           - managed
           - wait-until
-          - <ENTER-YOUR-MIG-NAME>
+          - demo-mig
           - --stable
-          - --project=<ENTER-YOUR-PROJECT-ID>
-          - --zone=<ENTER-YOUR-ZONE-NAME>
-        #Updating the MIG with new instance template
+          - --project=presales-infra-mod
+          - --zone=asia-south1-c
+        // Updating the MIG with new instance template
         - name: gcr.io/cloud-builders/gcloud
           id: updating-mig
           args:
@@ -62,11 +64,11 @@ pipeline {
           - managed
           - rolling-action
           - start-update
-          - <ENTER-YOUR-MIG-NAME>
-          - --version=template=<ENTER-YOUR-TEMPLATE-NAME>
+          - demo-mig
+          - --version=template=nginx-template
           - --type=proactive
-          - --zone=<ENTER-YOUR-ZONE-NAME>
-          - --project=<ENTER-YOUR-PROJECT-ID>''')
+          - --zone=asia-south1-c
+          - --project=presales-infra-mod' ' '
       }
     }
   }
